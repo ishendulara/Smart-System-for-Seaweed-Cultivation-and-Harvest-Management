@@ -49,7 +49,7 @@ Automate species identification, monitor environments, predict harvest readiness
 - 📱 Real-time weight-based tracking
 - Logistic Growth Model for harvest readiness
 - Tech: ESP32, HX711, Python (Flask), React.js, MongoDB  
-- 📊 _First mobile harvest prediction for local seaweed!_
+- 📊 _First weight based harvest prediction for local seaweed!_
 
 ### 4️⃣ Packaging & Delivery with AI Prescription Calculator
 - 🔗 QR-based traceability, smart packaging
