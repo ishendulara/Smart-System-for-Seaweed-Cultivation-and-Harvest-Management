@@ -14,7 +14,7 @@ Automate species identification, monitor environments, predict harvest readiness
 ## 🖼️ System Architecture Diagram
 
 <p align="center">
-  <img src="architecture-diagram.png" width="80%" alt="Integrated Smart Seaweed Farming System Architecture"/>
+  <img src="main system diagram.png" width="80%" alt="Integrated Smart Seaweed Farming System Architecture"/>
 </p>
 
 ---
