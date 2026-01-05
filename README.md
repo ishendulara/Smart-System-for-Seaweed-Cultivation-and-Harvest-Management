@@ -34,7 +34,7 @@ Automate species identification, monitor environments, predict harvest readiness
 ## 🔑 Key Modules
 
 ### 1️⃣ AI Seaweed Identification
-- 🔍 Identifies local species and rejects non-seaweed
+- 🔍 Identifies local seaweed species and rejects non-seaweed
 - Linked to knowledge base (traits, uses, nutrition)
 - Tech: TensorFlow, PyTorch, OpenCV, React.js, Node.js, MongoDB  
 - 🌟 _First localized AI model for Sri Lankan species!_
