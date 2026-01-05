@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Seaweed Identification – Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body {
+        font-family: Arial;
+        max-width: 700px;
+        margin: auto;
+        padding: 20px;
+      }
+      .card {
+        border: 1px solid #ccc;
+        padding: 15px;
+        border-radius: 10px;
+      }
+      button {
+        padding: 10px;
+        border-radius: 8px;
+        border: none;
+        background-color: #007bff;
+        color: white;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      img {
+        max-width: 100%;
+        margin-top: 10px;
+        border-radius: 10px;
+      }
+      #result {
+        margin-top: 20px;
+        padding: 15px;
+        border-radius: 8px;
+        font-size: 18px;
+      }
+      .success {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+      }
+      .warning {
+        background-color: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+      }
+      .accuracy {
+        font-size: 24px;
+        font-weight: bold;
+        margin: 10px 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h2>Seaweed Identification – Demo </h2>
+    <p><b>Model:</b> TensorFlow CNN (EfficientNet)</p>
+
+    <div class="card">
+      <input type="file" id="file" accept="image/*" />
+      <br /><br />
+      <button onclick="predict()">Predict</button>
+
+      <div id="preview"></div>
+      <div id="result"></div>
+    </div>
+
+    <script>
+      function predict() {
+        const file = document.getElementById("file").files[0];
+        if (!file) return alert("Please select an image first!");
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        document.getElementById(
+          "preview"
+        ).innerHTML = `<img src="${URL.createObjectURL(file)}">`;
+        
+        document.getElementById("result").innerHTML = `<p>Analyzing...</p>`;
+
+        fetch("/predict", {
+          method: "POST",
+          body: formData,
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.error) {
+              document.getElementById("result").innerHTML = `
+                <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 15px; border-radius: 8px;">
+                  <h3> Error</h3>
+                  <p>${data.error}</p>
+                </div>`;
+            } else if (data.rejected) {
+              document.getElementById("result").innerHTML = `
+                <div class="warning">
+                  <h3> Result: Non-Seaweed</h3>
+                  <div class="accuracy">Confidence: ${(data.confidence * 100).toFixed(2)}%</div>
+                  <p>The image does not appear to be a seaweed (below 70% threshold)</p>
+                </div>`;
+            } else {
+              document.getElementById("result").innerHTML = `
+                <div class="success">
+                  <h3> Prediction: ${data.label.toUpperCase()}</h3>
+                  <div class="accuracy">Confidence: ${(data.confidence * 100).toFixed(2)}%</div>
+                  <p>The model identified this as <strong>${data.label}</strong> seaweed</p>
+                </div>`;
+            }
+          })
+          .catch((error) => {
+            document.getElementById("result").innerHTML = `
+              <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 15px; border-radius: 8px;">
+                <h3> Connection Error</h3>
+                <p>${error.message}</p>
+              </div>`;
+          });
+      }
+    </script>
+  </body>
+</html>
