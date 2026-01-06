@@ -1,0 +1,38 @@
+==================================================
+SEAWEED CLASSIFICATION MODEL - ACCURACY REPORT
+==================================================
+
+Classes: gracilaria, kappaphycus
+
+PHASE 1 - Transfer Learning:
+  Best Training Accuracy: 0.9591 (95.91%)
+  Best Validation Accuracy: 0.9633 (96.33%)
+
+PHASE 2 - Fine-tuning:
+  Best Training Accuracy: 0.9318 (93.18%)
+  Best Validation Accuracy: 0.9358 (93.58%)
+
+FINAL RESULTS:
+  Training Accuracy: 0.9103 (91.03%)
+  Validation Accuracy: 0.9266 (92.66%)
+  Test Accuracy: 0.8661 (86.61%)
+  Test Loss: 0.4059
+
+CONFIDENCE THRESHOLDS:
+  Recommended threshold (90% recall): 0.7557
+  Recommended threshold (95% recall): 0.6593
+
+CLASSIFICATION REPORT:
+              precision    recall  f1-score   support
+
+  gracilaria       0.92      0.85      0.88        67
+ kappaphycus       0.80      0.89      0.84        45
+
+    accuracy                           0.87       112
+   macro avg       0.86      0.87      0.86       112
+weighted avg       0.87      0.87      0.87       112
+
+
+CONFUSION MATRIX:
+[[57 10]
+ [ 5 40]]

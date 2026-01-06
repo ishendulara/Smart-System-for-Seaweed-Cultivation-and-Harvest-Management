@@ -21,7 +21,8 @@ MODEL_PATH = BASE_DIR.parent / "models" / "final_model.keras"
 
 CLASS_NAMES = ["gracilaria", "kappaphycus"]
 IMG_SIZE = (224, 224)
-REJECTION_THRESHOLD = 0.70
+REJECTION_THRESHOLD = 0.45  # Lowered to reduce false rejections
+# This will be updated after training with the recommended threshold
 
 # Model loading flag
 model = None
