@@ -23,8 +23,13 @@ print(f"Loading model from: {MODEL_PATH}", file=sys.stderr)
 model = tf.keras.models.load_model(str(MODEL_PATH))
 print("Model loaded successfully!", file=sys.stderr)
 
-CLASS_NAMES = ["gracilaria", "kappaphycus"]
+CLASS_NAMES = ["gracilaria", "kappaphycus", "non_seaweed"]
 IMG_SIZE = (224, 224)
+CLASS_THRESHOLDS = {
+    "gracilaria": 0.70,
+    "kappaphycus": 0.70,
+    "non_seaweed": 0.50
+}
 REJECTION_THRESHOLD = 0.70
 
 def predict_image(image_path):
@@ -35,18 +40,21 @@ def predict_image(image_path):
         img = img.resize(IMG_SIZE)
         arr = np.array(img, dtype=np.float32)
         arr = np.expand_dims(arr, axis=0)
-        arr = tf.keras.applications.efficientnet.preprocess_input(arr)
+        arr = tf.keras.applications.efficientnet_v2.preprocess_input(arr)
         
         # Predict
         probs = model.predict(arr, verbose=0)[0]
         idx = int(np.argmax(probs))
         confidence = float(probs[idx])
+        predicted_class = CLASS_NAMES[idx]
+        class_threshold = CLASS_THRESHOLDS.get(predicted_class, REJECTION_THRESHOLD)
         
-        if confidence < REJECTION_THRESHOLD:
+        if confidence < class_threshold:
             return {
-                "label": "Non-Seaweed",
+                "label": "Unknown",
                 "confidence": confidence,
-                "rejected": True
+                "rejected": True,
+                "reason": f"Low confidence ({confidence:.2%}) for {predicted_class}"
             }
         else:
             return {
