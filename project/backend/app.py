@@ -18,15 +18,21 @@ templates = Jinja2Templates(directory="templates")
 # =======================
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = BASE_DIR.parent / "models" / "final_model.keras"
-
-CLASS_NAMES = ["gracilaria", "kappaphycus"]
+print(f"📂 Model path set to: {MODEL_PATH}")
+CLASS_NAMES = ["gracilaria", "kappaphycus", "non_seaweed"]
 IMG_SIZE = (224, 224)
-REJECTION_THRESHOLD = 0.45  # Lowered to reduce false rejections
-# This will be updated after training with the recommended threshold
+
+# Confidence thresholds for each class
+CLASS_THRESHOLDS = {
+    "gracilaria": 0.70,    # Higher threshold for seaweed species
+    "kappaphycus": 0.70,   # Higher threshold for seaweed species  
+    "non_seaweed": 0.50    # Lower threshold for non-seaweed (minority class)
+}
+REJECTION_THRESHOLD = 0.70  # Default threshold if not using class-specific
 
 # Model loading flag
 model = None
-USE_MOCK_MODEL = True  # Set to False when TensorFlow works
+USE_MOCK_MODEL = False  # Using real trained model
 
 def load_model_once():
     """Load model and dependencies only when first prediction is requested"""
@@ -62,22 +68,25 @@ def predict_with_mock(image_bytes):
     # Simulate processing - use hash to get deterministic but varied results
     hash_val = int(hashlib.md5(image_bytes).hexdigest(), 16)
     
-    # Use hash to deterministically pick a class
-    idx = hash_val % 2
+    # Use hash to deterministically pick a class (now 3 classes)
+    idx = hash_val % 3
     
-    # Vary confidence more realistically (0.45 to 0.95)
-    # This allows some images to be rejected (below 0.70 threshold)
-    confidence = 0.45 + (hash_val % 50) / 100  # Between 0.45 and 0.95
+    # Vary confidence more realistically (0.40 to 0.95)
+    confidence = 0.40 + (hash_val % 55) / 100  # Between 0.40 and 0.95
     
-    if confidence < REJECTION_THRESHOLD:
+    predicted_class = CLASS_NAMES[idx]
+    class_threshold = CLASS_THRESHOLDS.get(predicted_class, REJECTION_THRESHOLD)
+    
+    if confidence < class_threshold:
         return {
-            "label": "Non-Seaweed",
+            "label": "Unknown",
             "confidence": confidence,
-            "rejected": True
+            "rejected": True,
+            "reason": f"Confidence {confidence:.2%} below threshold {class_threshold:.2%}"
         }
     
     return {
-        "label": CLASS_NAMES[idx],
+        "label": predicted_class,
         "confidence": confidence,
         "rejected": False
     }
@@ -125,25 +134,38 @@ async def predict(file: UploadFile = File(...)):
             probs = model['keras_model'].predict(arr, verbose=0)[0]
             idx = int(np.argmax(probs))
             confidence = float(probs[idx])
+            predicted_class = CLASS_NAMES[idx]
             
-            # Build result
-            if confidence < REJECTION_THRESHOLD:
+            # Get class-specific threshold
+            class_threshold = CLASS_THRESHOLDS.get(predicted_class, REJECTION_THRESHOLD)
+            
+            # Build result with class-specific threshold
+            if confidence < class_threshold:
                 result = {
-                    "label": "Non-Seaweed",
+                    "label": "Unknown",
                     "confidence": confidence,
-                    "rejected": True
+                    "rejected": True,
+                    "predicted_class": predicted_class,
+                    "reason": f"Low confidence ({confidence:.2%}) for {predicted_class}"
                 }
-                print(f"🔴 Result: Non-Seaweed")
-                print(f"📊 Confidence: {confidence:.2%}")
-                print(f"   (Below threshold of {REJECTION_THRESHOLD:.2%})")
+                print(f"🔴 Result: Unknown (Low Confidence)")
+                print(f"📊 Predicted: {predicted_class.upper()} with {confidence:.2%}")
+                print(f"   (Below {predicted_class} threshold of {class_threshold:.2%})")
             else:
                 result = {
-                    "label": CLASS_NAMES[idx],
+                    "label": predicted_class,
                     "confidence": confidence,
                     "rejected": False
                 }
-                print(f"✅ Prediction: {CLASS_NAMES[idx].upper()}")
+                # Different emoji for non_seaweed vs seaweed species
+                emoji = "🌊" if predicted_class in ["gracilaria", "kappaphycus"] else "🚫"
+                print(f"{emoji} Prediction: {predicted_class.upper()}")
                 print(f"📊 Confidence: {confidence:.2%}")
+                
+                # Show all class probabilities for debugging
+                print(f"📈 All probabilities:")
+                for i, prob in enumerate(probs):
+                    print(f"   {CLASS_NAMES[i]}: {prob:.2%}")
         
         print("="*60 + "\n")
         return result
