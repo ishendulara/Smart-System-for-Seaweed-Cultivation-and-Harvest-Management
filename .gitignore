@@ -1,0 +1,33 @@
+# ── Python ──────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ── Virtual Environments ───────────
+.venv/
+venv/
+env/
+
+# ── Data (too large for git) ───────
+project/data_raw/
+project/data_clean/
+project/data_clean_dedup/
+project/data_split/
+
+# ── Models (too large for git) ─────
+project/models/*.keras
+project/models/*.h5
+
+# ── OS Files ───────────────────────
+.DS_Store
+Thumbs.db
+
+# ── IDE ────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
