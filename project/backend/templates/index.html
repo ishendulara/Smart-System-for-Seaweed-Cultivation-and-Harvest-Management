@@ -1,124 +1,568 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>Seaweed Identification – Demo</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>
-      body {
-        font-family: Arial;
-        max-width: 700px;
-        margin: auto;
-        padding: 20px;
-      }
-      .card {
-        border: 1px solid #ccc;
-        padding: 15px;
-        border-radius: 10px;
-      }
-      button {
-        padding: 10px;
-        border-radius: 8px;
-        border: none;
-        background-color: #007bff;
-        color: white;
-        cursor: pointer;
-        font-size: 16px;
-      }
-      button:hover {
-        background-color: #0056b3;
-      }
-      img {
-        max-width: 100%;
-        margin-top: 10px;
-        border-radius: 10px;
-      }
-      #result {
-        margin-top: 20px;
-        padding: 15px;
-        border-radius: 8px;
-        font-size: 18px;
-      }
-      .success {
-        background-color: #d4edda;
-        border: 1px solid #c3e6cb;
-        color: #155724;
-      }
-      .warning {
-        background-color: #fff3cd;
-        border: 1px solid #ffeaa7;
-        color: #856404;
-      }
-      .accuracy {
-        font-size: 24px;
-        font-weight: bold;
-        margin: 10px 0;
-      }
-    </style>
-  </head>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SeaWeed AI — Smart Seaweed Identification</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Base ───────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  <body>
-    <h2>Seaweed Identification – Demo </h2>
-    <p><b>Model:</b> TensorFlow CNN (EfficientNet)</p>
+    :root {
+      --ocean-dark:  #0a2540;
+      --ocean-mid:   #0d3b66;
+      --teal:        #0ea5a0;
+      --teal-light:  #14d4cf;
+      --sea-green:   #2dd4a8;
+      --sand:        #f0f7f4;
+      --white:       #ffffff;
+      --glass-bg:    rgba(255,255,255,0.12);
+      --glass-border:rgba(255,255,255,0.18);
+      --shadow:      0 8px 32px rgba(0,0,0,0.25);
+      --radius:      16px;
+      --radius-sm:   10px;
+    }
 
-    <div class="card">
-      <input type="file" id="file" accept="image/*" />
-      <br /><br />
-      <button onclick="predict()">Predict</button>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      color: var(--white);
+      overflow-x: hidden;
+    }
 
-      <div id="preview"></div>
-      <div id="result"></div>
+    /* ── Animated Ocean Background ──────────────── */
+    .bg {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      background: linear-gradient(160deg, #021b35 0%, #063d5f 30%, #0b5e6b 60%, #0e7c6b 100%);
+    }
+
+    .bg::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 80%, rgba(14,165,160,0.25) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 20%, rgba(45,212,168,0.18) 0%, transparent 50%);
+    }
+
+    /* Floating bubble particles */
+    .bubbles {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .bubbles span {
+      position: absolute;
+      bottom: -60px;
+      width: var(--s);
+      height: var(--s);
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      animation: rise var(--d) linear infinite;
+      animation-delay: var(--dl);
+    }
+    @keyframes rise {
+      0%   { transform: translateY(0) rotate(0deg); opacity: 0.6; }
+      100% { transform: translateY(-110vh) rotate(360deg); opacity: 0; }
+    }
+
+    /* ── Layout ─────────────────────────────────── */
+    .page { display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 2rem 1rem; }
+
+    /* ── Header / Hero ─────────────────────────── */
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+      animation: fadeDown 0.8s ease-out;
+    }
+    @keyframes fadeDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 0.5rem;
+    }
+    .logo-icon {
+      font-size: 2.5rem;
+      filter: drop-shadow(0 0 12px rgba(14,165,160,0.5));
+    }
+    .logo-text {
+      font-size: 2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--teal-light), var(--sea-green));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.04em;
+    }
+
+    header p {
+      font-size: 1.05rem;
+      font-weight: 300;
+      color: rgba(255,255,255,0.7);
+      max-width: 480px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    .badge-row {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 0.75rem;
+    }
+    .badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.3rem 0.7rem;
+      border-radius: 50px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(8px);
+      color: var(--teal-light);
+    }
+
+    /* ── Main Card ─────────────────────────────── */
+    .card {
+      width: 100%;
+      max-width: 540px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: var(--radius);
+      padding: 2rem;
+      box-shadow: var(--shadow);
+      animation: fadeUp 0.8s ease-out 0.15s both;
+    }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card-title span { font-size: 1.3rem; }
+
+    /* ── Drop Zone ─────────────────────────────── */
+    .drop-zone {
+      position: relative;
+      border: 2px dashed rgba(255,255,255,0.22);
+      border-radius: var(--radius-sm);
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: rgba(255,255,255,0.04);
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--teal);
+      background: rgba(14,165,160,0.08);
+    }
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .drop-icon { font-size: 2.4rem; margin-bottom: 0.5rem; }
+    .drop-text { font-size: 0.95rem; font-weight: 400; color: rgba(255,255,255,0.65); }
+    .drop-text strong { color: var(--teal-light); font-weight: 600; }
+    .drop-hint { font-size: 0.75rem; color: rgba(255,255,255,0.35); margin-top: 0.4rem; }
+
+    /* file name display */
+    .file-name {
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--teal-light);
+      display: none;
+      align-items: center;
+      gap: 0.35rem;
+      justify-content: center;
+    }
+    .file-name.show { display: flex; }
+
+    /* ── Preview ───────────────────────────────── */
+    .preview-wrapper {
+      margin-top: 1.25rem;
+      display: none;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.1);
+      position: relative;
+    }
+    .preview-wrapper.show { display: block; }
+    .preview-wrapper img {
+      width: 100%;
+      display: block;
+      max-height: 320px;
+      object-fit: cover;
+    }
+
+    /* ── Button ────────────────────────────────── */
+    .btn {
+      margin-top: 1.5rem;
+      width: 100%;
+      padding: 0.9rem;
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: inherit;
+      color: var(--white);
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, var(--teal) 0%, #0b8a78 100%);
+      box-shadow: 0 4px 15px rgba(14,165,160,0.35);
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(14,165,160,0.5); }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: 0.55; pointer-events: none; }
+    .btn .icon { font-size: 1.2rem; }
+
+    /* ── Spinner ───────────────────────────────── */
+    .spinner {
+      width: 20px; height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    .spinner.show { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Result Card ───────────────────────────── */
+    .result-area {
+      margin-top: 1.5rem;
+      display: none;
+    }
+    .result-area.show { display: block; animation: fadeUp 0.5s ease-out; }
+
+    .result-card {
+      border-radius: var(--radius-sm);
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .result-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius-sm);
+      z-index: 0;
+    }
+    .result-card > * { position: relative; z-index: 1; }
+
+    /* Result variants */
+    .result-card.gracilaria  { background: linear-gradient(135deg, rgba(14,165,160,0.25), rgba(45,212,168,0.15)); border: 1px solid rgba(45,212,168,0.3); }
+    .result-card.kappaphycus { background: linear-gradient(135deg, rgba(56,132,244,0.25), rgba(100,180,255,0.15)); border: 1px solid rgba(100,180,255,0.3); }
+    .result-card.non_seaweed { background: linear-gradient(135deg, rgba(245,158,11,0.25), rgba(251,191,36,0.15)); border: 1px solid rgba(251,191,36,0.3); }
+    .result-card.unknown     { background: linear-gradient(135deg, rgba(156,163,175,0.25), rgba(209,213,219,0.15)); border: 1px solid rgba(209,213,219,0.3); }
+    .result-card.error       { background: linear-gradient(135deg, rgba(239,68,68,0.25), rgba(248,113,113,0.15)); border: 1px solid rgba(248,113,113,0.3); }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 0.75rem;
+    }
+    .result-emoji { font-size: 1.6rem; }
+    .result-label { font-size: 1.2rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
+
+    .confidence-bar-wrap {
+      background: rgba(255,255,255,0.1);
+      border-radius: 50px;
+      height: 10px;
+      overflow: hidden;
+      margin: 0.75rem 0 0.5rem;
+    }
+    .confidence-bar {
+      height: 100%;
+      border-radius: 50px;
+      transition: width 1s cubic-bezier(0.22,1,0.36,1);
+      width: 0;
+    }
+    .result-card.gracilaria  .confidence-bar { background: linear-gradient(90deg, var(--teal), var(--sea-green)); }
+    .result-card.kappaphycus .confidence-bar { background: linear-gradient(90deg, #3884f4, #64b4ff); }
+    .result-card.non_seaweed .confidence-bar { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .result-card.unknown     .confidence-bar { background: linear-gradient(90deg, #9ca3af, #d1d5db); }
+    .result-card.error       .confidence-bar { background: linear-gradient(90deg, #ef4444, #f87171); }
+
+    .confidence-text {
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.6);
+      display: flex;
+      justify-content: space-between;
+    }
+    .confidence-pct { font-weight: 700; font-size: 1.6rem; color: var(--white); }
+
+    .result-desc {
+      margin-top: 0.75rem;
+      font-size: 0.88rem;
+      color: rgba(255,255,255,0.65);
+      line-height: 1.5;
+    }
+
+    /* Species info box */
+    .species-info {
+      margin-top: 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.6);
+      line-height: 1.55;
+    }
+    .species-info strong { color: rgba(255,255,255,0.85); }
+
+    /* ── Footer ────────────────────────────────── */
+    footer {
+      margin-top: 2.5rem;
+      text-align: center;
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.3);
+      animation: fadeUp 0.8s ease-out 0.3s both;
+    }
+    footer a { color: var(--teal-light); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ── Responsive ────────────────────────────── */
+    @media (max-width: 600px) {
+      .page { padding: 1.25rem 0.75rem; }
+      .card { padding: 1.5rem 1.25rem; }
+      .logo-text { font-size: 1.5rem; }
+      .logo-icon { font-size: 2rem; }
+      header p { font-size: 0.92rem; }
+      .drop-zone { padding: 2rem 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Background layers -->
+<div class="bg"></div>
+<div class="bubbles">
+  <span style="--s:18px;--d:14s;--dl:0s;   left:5%"></span>
+  <span style="--s:12px;--d:18s;--dl:2s;   left:15%"></span>
+  <span style="--s:24px;--d:20s;--dl:4s;   left:28%"></span>
+  <span style="--s:10px;--d:16s;--dl:1s;   left:40%"></span>
+  <span style="--s:20px;--d:22s;--dl:5s;   left:55%"></span>
+  <span style="--s:14px;--d:15s;--dl:3s;   left:68%"></span>
+  <span style="--s:22px;--d:19s;--dl:6s;   left:78%"></span>
+  <span style="--s:16px;--d:17s;--dl:1.5s; left:88%"></span>
+  <span style="--s:10px;--d:21s;--dl:3.5s; left:95%"></span>
+</div>
+
+<div class="page">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <span class="logo-icon">🌊</span>
+      <span class="logo-text">SeaWeed AI</span>
+    </div>
+    <p>Smart identification of seaweed species using deep learning.
+       Upload an image to classify it instantly.</p>
+    <div class="badge-row">
+      <span class="badge">EfficientNetV2</span>
+      <span class="badge">TensorFlow</span>
+      <span class="badge">3-Class Model</span>
+    </div>
+  </header>
+
+  <!-- Main Card -->
+  <div class="card">
+    <div class="card-title"><span>📷</span> Upload Seaweed Image</div>
+
+    <!-- Drop Zone -->
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept="image/*" />
+      <div class="drop-icon">🧬</div>
+      <div class="drop-text"><strong>Click to browse</strong> or drag &amp; drop</div>
+      <div class="drop-hint">Supports JPG, PNG, WEBP</div>
     </div>
 
-    <script>
-      function predict() {
-        const file = document.getElementById("file").files[0];
-        if (!file) return alert("Please select an image first!");
+    <!-- File name -->
+    <div class="file-name" id="fileName">📎 <span id="fileNameText"></span></div>
 
-        const formData = new FormData();
-        formData.append("file", file);
+    <!-- Preview -->
+    <div class="preview-wrapper" id="previewWrapper">
+      <img id="previewImg" alt="Preview" />
+    </div>
 
-        document.getElementById(
-          "preview"
-        ).innerHTML = `<img src="${URL.createObjectURL(file)}">`;
-        
-        document.getElementById("result").innerHTML = `<p>Analyzing...</p>`;
+    <!-- Predict button -->
+    <button class="btn" id="predictBtn" onclick="predict()" disabled>
+      <span class="icon">🔬</span>
+      <span id="btnText">Analyze Image</span>
+      <div class="spinner" id="spinner"></div>
+    </button>
 
-        fetch("/predict", {
-          method: "POST",
-          body: formData,
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.error) {
-              document.getElementById("result").innerHTML = `
-                <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 15px; border-radius: 8px;">
-                  <h3> Error</h3>
-                  <p>${data.error}</p>
-                </div>`;
-            } else if (data.rejected) {
-              document.getElementById("result").innerHTML = `
-                <div class="warning">
-                  <h3> Result: Non-Seaweed</h3>
-                  <div class="accuracy">Confidence: ${(data.confidence * 100).toFixed(2)}%</div>
-                  <p>The image does not appear to be a seaweed (below 70% threshold)</p>
-                </div>`;
-            } else {
-              document.getElementById("result").innerHTML = `
-                <div class="success">
-                  <h3> Prediction: ${data.label.toUpperCase()}</h3>
-                  <div class="accuracy">Confidence: ${(data.confidence * 100).toFixed(2)}%</div>
-                  <p>The model identified this as <strong>${data.label}</strong> seaweed</p>
-                </div>`;
-            }
-          })
-          .catch((error) => {
-            document.getElementById("result").innerHTML = `
-              <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 15px; border-radius: 8px;">
-                <h3> Connection Error</h3>
-                <p>${error.message}</p>
-              </div>`;
-          });
-      }
-    </script>
-  </body>
+    <!-- Result -->
+    <div class="result-area" id="resultArea"></div>
+  </div>
+
+  <footer>
+    Smart System for Seaweed Cultivation &amp; Harvest Management<br />
+    Powered by <a href="https://www.tensorflow.org" target="_blank" rel="noopener">TensorFlow</a> &amp; EfficientNetV2
+  </footer>
+
+</div>
+
+<script>
+  /* ── Species detail map ─────────────────────── */
+  const speciesInfo = {
+    gracilaria:  'Gracilaria is a red algae widely used in agar production and food industries. It thrives in warm, shallow coastal waters.',
+    kappaphycus: 'Kappaphycus (Cottonii) is the primary source of kappa-carrageenan, used globally in food, cosmetics, and pharmaceuticals.',
+    non_seaweed: 'The image has been identified as a non-seaweed object. It does not match any cultivated seaweed species in our database.'
+  };
+
+  const classEmoji = {
+    gracilaria:  '🌿',
+    kappaphycus: '🪸',
+    non_seaweed: '🚫',
+    unknown:     '❓',
+    error:       '⚠️'
+  };
+
+  /* ── DOM refs ───────────────────────────────── */
+  const fileInput     = document.getElementById('fileInput');
+  const dropZone      = document.getElementById('dropZone');
+  const fileName      = document.getElementById('fileName');
+  const fileNameText  = document.getElementById('fileNameText');
+  const previewWrapper= document.getElementById('previewWrapper');
+  const previewImg    = document.getElementById('previewImg');
+  const predictBtn    = document.getElementById('predictBtn');
+  const btnText       = document.getElementById('btnText');
+  const spinner       = document.getElementById('spinner');
+  const resultArea    = document.getElementById('resultArea');
+
+  let selectedFile = null;
+
+  /* ── File selection ─────────────────────────── */
+  fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+
+  dropZone.addEventListener('dragover',  (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    if (e.dataTransfer.files.length) {
+      handleFile(e.dataTransfer.files[0]);
+      fileInput.files = e.dataTransfer.files;
+    }
+  });
+
+  function handleFile(file) {
+    if (!file) return;
+    selectedFile = file;
+
+    /* show file name */
+    fileNameText.textContent = file.name;
+    fileName.classList.add('show');
+
+    /* show preview */
+    const url = URL.createObjectURL(file);
+    previewImg.src = url;
+    previewWrapper.classList.add('show');
+
+    /* enable button & hide old result */
+    predictBtn.disabled = false;
+    resultArea.classList.remove('show');
+    resultArea.innerHTML = '';
+  }
+
+  /* ── Predict ────────────────────────────────── */
+  function predict() {
+    if (!selectedFile) return;
+
+    /* UI: loading state */
+    predictBtn.disabled = true;
+    btnText.textContent = 'Analyzing…';
+    spinner.classList.add('show');
+    resultArea.classList.remove('show');
+
+    const form = new FormData();
+    form.append('file', selectedFile);
+
+    fetch('/predict', { method: 'POST', body: form })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          showResult('error', 'Error', 0, data.error, '');
+        } else if (data.rejected) {
+          const reason = data.reason || 'Confidence below threshold';
+          showResult('unknown', 'Unknown', data.confidence, reason, '');
+        } else {
+          const cls  = data.label;
+          const desc = `Identified as <strong>${cls.replace('_',' ')}</strong>`;
+          const info = speciesInfo[cls] || '';
+          showResult(cls, cls.replace('_',' '), data.confidence, desc, info);
+        }
+      })
+      .catch(err => showResult('error', 'Connection Error', 0, err.message, ''))
+      .finally(() => {
+        predictBtn.disabled = false;
+        btnText.textContent = 'Analyze Image';
+        spinner.classList.remove('show');
+      });
+  }
+
+  /* ── Render result card ─────────────────────── */
+  function showResult(cls, label, confidence, desc, info) {
+    const pct = (confidence * 100).toFixed(1);
+    const emoji = classEmoji[cls] || '🔍';
+
+    resultArea.innerHTML = `
+      <div class="result-card ${cls}">
+        <div class="result-header">
+          <span class="result-emoji">${emoji}</span>
+          <span class="result-label">${label}</span>
+        </div>
+        <div class="confidence-pct">${pct}%</div>
+        <div class="confidence-bar-wrap">
+          <div class="confidence-bar" id="confBar"></div>
+        </div>
+        <div class="confidence-text">
+          <span>Confidence</span>
+          <span>${pct}%</span>
+        </div>
+        <div class="result-desc">${desc}</div>
+        ${info ? `<div class="species-info"><strong>ℹ About this species:</strong> ${info}</div>` : ''}
+      </div>`;
+
+    resultArea.classList.add('show');
+
+    /* animate bar */
+    requestAnimationFrame(() => {
+      const bar = document.getElementById('confBar');
+      if (bar) bar.style.width = pct + '%';
+    });
+  }
+</script>
+</body>
 </html>
